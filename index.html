@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Gold Shop Calculator</title>
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Gold Calc">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#8a5a00">
+
+<style>
+:root{--bg:#faf8f3;--card:#fff;--ink:#1f2a24;--mute:#66706a;--line:#e3ded2;--accent:#8a5a00;--accent-bg:#f6ead0;--good:#1d6b3a;--bad:#a3281f;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15181a;--card:#1e2224;--ink:#eee9dc;--mute:#9aa39d;--line:#34393b;--accent:#e2b24d;--accent-bg:#3a2f14;--good:#6fcf92;--bad:#ff8f84;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#15181a;--card:#1e2224;--ink:#eee9dc;--mute:#9aa39d;--line:#34393b;--accent:#e2b24d;--accent-bg:#3a2f14;--good:#6fcf92;--bad:#ff8f84;color-scheme:dark}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans","Segoe UI",system-ui,sans-serif;font-size:17px;line-height:1.45}
+main{max-width:560px;margin:0 auto;padding:14px 14px 40px}
+h1{font-family:"Noto Serif","Georgia",serif;font-size:1.5rem;margin:6px 0 2px}
+.sub{color:var(--mute);margin:0 0 12px;font-size:.95rem}
+.tabs{display:flex;gap:6px;margin-bottom:12px}
+.tabs button{flex:1;padding:12px 4px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;font:inherit;font-weight:600;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--accent);color:#fff;border-color:var(--accent)}
+@media (prefers-color-scheme:dark){.tabs button[aria-selected="true"]{color:#15181a}}
+section{display:none}section.on{display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+h2{font-size:1.05rem;margin:0 0 10px;font-family:"Noto Serif",Georgia,serif}
+label{display:block;font-size:.92rem;color:var(--mute);margin:10px 0 4px}
+.hint{font-size:.82rem;color:var(--mute);margin-top:3px}
+input,select{width:100%;padding:12px;font:inherit;font-size:1.1rem;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:3px solid var(--accent);outline-offset:1px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+table{width:100%;border-collapse:collapse}
+td{padding:8px 0;border-bottom:1px solid var(--line)}
+td:last-child{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+tr.neg td:last-child{color:var(--good)}
+tr.sum td{font-weight:700}
+.total{background:var(--accent-bg);border-radius:10px;padding:12px;margin-top:10px;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.total b{font-size:1.6rem;font-family:"Noto Serif",Georgia,serif}
+.note{font-size:.88rem;color:var(--mute);margin:8px 0 0}
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.win{border-color:var(--good);border-width:2px}
+.verdict{font-weight:700;text-align:center;padding:10px;border-radius:10px;background:var(--accent-bg)}
+</style>
+</head>
+<body>
+<main>
+<h1>Gold shop calculator</h1>
+<p class="sub">Check the bill before you pay. Fill what you know; the rest can stay 0.</p>
+
+<div class="tabs" role="tablist">
+<button role="tab" aria-selected="true" data-t="p">Buy</button>
+<button role="tab" aria-selected="false" data-t="c">Compare shops</button>
+<button role="tab" aria-selected="false" data-t="s">Chit scheme</button>
+</div>
+
+<!-- BUY -->
+<section id="p" class="on">
+<div class="card">
+<h2>Jewellery details</h2>
+<label for="rate">Today’s gold rate (₹ per gram)</label>
+<input id="rate" inputmode="decimal" placeholder="e.g. 7500">
+<div class="hint">Ask the shop for the board rate for the same purity (22K / 24K).</div>
+<div class="row2">
+<div><label for="gw">Total weight (g)</label><input id="gw" inputmode="decimal"></div>
+<div><label for="sw">Stone / beads weight (g)</label><input id="sw" inputmode="decimal" placeholder="0"></div>
+</div>
+<label for="mt">How is making charge given?</label>
+<select id="mt">
+<option value="w">Wastage % (VA)</option>
+<option value="g">₹ per gram</option>
+<option value="f">Fixed ₹ amount</option>
+</select>
+<label for="mv" id="mvl">Wastage %</label>
+<input id="mv" inputmode="decimal" placeholder="e.g. 12">
+<label for="md">Discount on wastage / making (%)</label>
+<input id="md" inputmode="decimal" placeholder="0">
+<div class="hint">If they say “25% off on wastage”, type 25.</div>
+<div class="row2">
+<div><label for="st">Stone charges (₹)</label><input id="st" inputmode="decimal" placeholder="0"></div>
+<div><label for="ot">Hallmark / other (₹)</label><input id="ot" inputmode="decimal" placeholder="0"></div>
+</div>
+<label for="gst">GST (%)</label>
+<input id="gst" inputmode="decimal" value="3">
+</div>
+
+<div class="card">
+<h2>Old gold exchange (optional)</h2>
+<div class="row2">
+<div><label for="ow">Old gold weight (g)</label><input id="ow" inputmode="decimal" placeholder="0"></div>
+<div><label for="op">Purity after melting (%)</label><input id="op" inputmode="decimal" placeholder="e.g. 91.6"></div>
+</div>
+<label for="orate">Rate they give for old gold (₹/g)</label>
+<input id="orate" inputmode="decimal" placeholder="Same as today’s rate if blank">
+</div>
+
+<div class="card">
+<h2>Your bill</h2>
+<table id="bill"></table>
+<div class="total"><span>You pay</span><b id="pay">₹0</b></div>
+<p class="note" id="extra"></p>
+</div>
+</section>
+
+<!-- COMPARE -->
+<section id="c">
+<div class="card">
+<h2>Same piece, two shops</h2>
+<div class="row2">
+<div><label for="cw">Net gold weight (g)</label><input id="cw" inputmode="decimal"></div>
+<div><label for="cs">Stone charges (₹)</label><input id="cs" inputmode="decimal" placeholder="0"></div>
+</div>
+<label for="cg">GST (%)</label>
+<input id="cg" inputmode="decimal" value="3">
+<div class="cmp">
+<div>
+<h2 style="margin-top:14px">Shop A</h2>
+<label for="ar">Gold rate (₹/g)</label><input id="ar" inputmode="decimal">
+<label for="aw">Wastage %</label><input id="aw" inputmode="decimal">
+<label for="ad">Discount on wastage %</label><input id="ad" inputmode="decimal" placeholder="0">
+</div>
+<div>
+<h2 style="margin-top:14px">Shop B</h2>
+<label for="br">Gold rate (₹/g)</label><input id="br" inputmode="decimal">
+<label for="bw">Wastage %</label><input id="bw" inputmode="decimal">
+<label for="bd">Discount on wastage %</label><input id="bd" inputmode="decimal" placeholder="0">
+</div>
+</div>
+</div>
+<div class="card">
+<div class="cmp">
+<div id="ca"></div><div id="cb"></div>
+</div>
+<div class="verdict" id="cv" style="margin-top:12px">Fill both shops to compare.</div>
+<p class="note">Real wastage after discount = wastage % × (1 − discount %). Example: 14% with 25% off becomes 10.5%.</p>
+</div>
+</section>
+
+<!-- CHIT -->
+<section id="s">
+<div class="card">
+<h2>Chit / savings scheme</h2>
+<div class="row2">
+<div><label for="sm">Monthly instalment (₹)</label><input id="sm" inputmode="decimal" placeholder="e.g. 5000"></div>
+<div><label for="sn">Months you pay</label><input id="sn" inputmode="decimal" value="11"></div>
+</div>
+<div class="row2">
+<div><label for="sb">Shop adds (instalments)</label><input id="sb" inputmode="decimal" value="1"></div>
+<div><label for="sr">Gold rate today (₹/g)</label><input id="sr" inputmode="decimal"></div>
+</div>
+<div class="hint">Most Chennai schemes: you pay 11 months, the shop adds the 12th. Check your scheme card.</div>
+<table id="chit" style="margin-top:10px"></table>
+<div class="total"><span>Chit value</span><b id="cval">₹0</b></div>
+<p class="note">Before you join, ask: (1) is the gold rate fixed on the day you buy or when you join? (2) is wastage or making charge waived? (3) can it be used on all jewellery, or only some? (4) is GST paid by you extra? (5) what happens if you miss a month?</p>
+</div>
+</section>
+</main>
+
+<script>
+(function(){
+var $=function(i){return document.getElementById(i)};
+var v=function(i){var x=parseFloat($(i).value);return isNaN(x)?0:x};
+var R=function(x){return '₹'+Math.round(x).toLocaleString('en-IN')};
+var G=function(x){return (Math.round(x*1000)/1000).toLocaleString('en-IN')+' g'};
+
+document.querySelectorAll('.tabs button').forEach(function(b){
+ b.addEventListener('click',function(){
+  document.querySelectorAll('.tabs button').forEach(function(x){x.setAttribute('aria-selected',x===b)});
+  document.querySelectorAll('section').forEach(function(s){s.classList.toggle('on',s.id===b.dataset.t)});
+  if(history.replaceState){try{history.replaceState(null,'','#'+b.dataset.t)}catch(e){}}
+ });
+});
+
+function row(l,val,cls){return '<tr class="'+(cls||'')+'"><td>'+l+'</td><td>'+val+'</td></tr>'}
+
+function buy(){
+ var rate=v('rate'),gw=v('gw'),sw=v('sw'),net=Math.max(gw-sw,0);
+ var t=$('mt').value,mv=v('mv'),md=v('md');
+ $('mvl').textContent=t==='w'?'Wastage %':t==='g'?'Making charge (₹ per gram)':'Making charge (₹)';
+ var gold=net*rate,making=0,wg=0;
+ if(t==='w'){wg=net*mv/100;making=wg*rate}
+ else if(t==='g'){making=net*mv}
+ else{making=mv}
+ var disc=making*md/100,stone=v('st'),oth=v('ot');
+ var sub=gold+making-disc+stone+oth,gst=sub*v('gst')/100,tot=sub+gst;
+ var oldv=v('ow')*v('op')/100*(v('orate')||rate);
+ var h=row('Net gold weight',G(net))+row('Gold value ('+G(net)+' × '+R(rate)+')',R(gold));
+ h+=row(t==='w'?'Wastage ('+mv+'% = '+G(wg)+')':'Making charge',R(making));
+ if(disc>0)h+=row('Discount on making ('+md+'%)','− '+R(disc),'neg');
+ if(stone)h+=row('Stone charges',R(stone));
+ if(oth)h+=row('Hallmark / other',R(oth));
+ h+=row('Amount before GST',R(sub),'sum')+row('GST ('+v('gst')+'%)',R(gst))+row('Bill total',R(tot),'sum');
+ if(oldv>0)h+=row('Old gold value','− '+R(oldv),'neg');
+ $('bill').innerHTML=h;
+ $('pay').textContent=R(Math.max(tot-oldv,0));
+ var ex=[];
+ if(net>0&&rate>0){
+  ex.push('Making cost is '+(((making-disc)/gold*100)||0).toFixed(1)+'% of the gold value.');
+  ex.push('You pay '+R(tot/net)+' per gram all-in, against the board rate of '+R(rate)+'.');
+ }
+ $('extra').textContent=ex.join(' ');
+}
+
+function shop(p){
+ var net=v('cw'),r=v(p+'r'),w=v(p+'w'),d=v(p+'d'),eff=w*(1-d/100);
+ var gold=net*r,wv=net*eff/100*r,sub=gold+wv+v('cs'),tot=sub*(1+v('cg')/100);
+ return {eff:eff,tot:tot,ok:net>0&&r>0};
+}
+function cmp(){
+ var a=shop('a'),b=shop('b');
+ function box(n,s,win){return '<div class="card'+(win?' win':'')+'" style="margin:0"><b>Shop '+n+'</b><div class="hint">Real wastage</div><div style="font-size:1.2rem">'+(Math.round(s.eff*100)/100)+'%</div><div class="hint">Total with GST</div><div style="font-size:1.3rem;font-weight:700">'+R(s.tot)+'</div></div>'}
+ var aw=a.ok&&b.ok&&a.tot<b.tot,bw=a.ok&&b.ok&&b.tot<a.tot;
+ $('ca').innerHTML=box('A',a,aw);$('cb').innerHTML=box('B',b,bw);
+ $('cv').textContent=!(a.ok&&b.ok)?'Fill both shops to compare.':a.tot===b.tot?'Both cost the same.':'Shop '+(aw?'A':'B')+' is cheaper by '+R(Math.abs(a.tot-b.tot));
+}
+
+function chit(){
+ var m=v('sm'),n=v('sn'),b=v('sb'),r=v('sr'),paid=m*n,val=m*(n+b),bon=m*b;
+ var h=row('You pay in total',R(paid))+row('Shop adds',R(bon),'neg')+row('Bonus on what you paid',(n>0?(bon/paid*100).toFixed(1):'0')+'%');
+ if(r>0)h+=row('Gold you could buy today (chit value)',G(val/r))+row('Gold if you bought directly with your money',G(paid/r));
+ h+=row('Jewellery you can pick if GST comes from chit',R(val/1.03));
+ $('chit').innerHTML=h;
+ $('cval').textContent=R(val);
+}
+
+document.addEventListener('input',function(){buy();cmp();chit()});
+document.addEventListener('change',function(){buy()});
+buy();cmp();chit();
+var hs=(location.hash||'').slice(1);
+if(hs){var tb=document.querySelector('.tabs button[data-t="'+hs+'"]');if(tb)tb.click()}
+})();
+</script>
+<script>
+if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('./sw.js').catch(function(){})})}
+</script>
+</body>
+</html>
