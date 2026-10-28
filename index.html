@@ -100,6 +100,12 @@ tr.sum td{font-weight:700}
 </div>
 
 <div class="card">
+<h2>Use my chit (optional)</h2>
+<label style="display:flex;gap:12px;align-items:center;color:var(--ink);font-size:1rem;margin-top:0"><input id="uc" type="checkbox" style="width:24px;height:24px;padding:0;flex:none"> I am redeeming my chit on this purchase</label>
+<div class="hint" id="chinfo"></div>
+</div>
+
+<div class="card">
 <h2>Your bill</h2>
 <table id="bill"></table>
 <div class="total"><span>You pay</span><b id="pay">₹0</b></div>
@@ -144,7 +150,7 @@ tr.sum td{font-weight:700}
 <!-- CHIT -->
 <section id="s">
 <div class="card">
-<h2>Chit / savings scheme</h2>
+<h2>Chit scheme</h2>
 <div class="row2">
 <div><label for="sm">Monthly instalment (₹)</label><input id="sm" inputmode="decimal" placeholder="e.g. 5000"></div>
 <div><label for="sn">Months you pay</label><input id="sn" inputmode="decimal" value="11"></div>
@@ -153,12 +159,26 @@ tr.sum td{font-weight:700}
 <div><label for="sb">Shop adds (instalments)</label><input id="sb" inputmode="decimal" value="1"></div>
 <div><label for="sr">Gold rate today (₹/g)</label><input id="sr" inputmode="decimal"></div>
 </div>
-<div class="hint">Most Chennai schemes: you pay 11 months, the shop adds the 12th. Check your scheme card.</div>
+<label for="sw2">Gold weight in chit (g), if your scheme gives weight</label>
+<input id="sw2" inputmode="decimal" placeholder="0">
+<div class="hint">Leave weight at 0 if you only have an amount. If both are filled, the Buy tab works out the bill both ways and shows the cheaper one.</div>
+<h2 style="margin-top:16px">Wastage benefit</h2>
+<label for="wt">Your chit gives</label>
+<select id="wt">
+<option value="up">Minus points: 18.86% wastage − 18 = 0.86%</option>
+<option value="disc">% off the wastage: 18.86% less 18% = 15.47%</option>
+</select>
+<label for="wv" id="wvl">Wastage reduced by (points, e.g. 18)</label>
+<input id="wv" inputmode="decimal" value="18">
+<div class="hint">This applies only to the grams in your chit. Any extra grams you buy pay full wastage, and wastage is always paid in cash on top of the chit gold.</div>
+<label for="cwp">Shop’s wastage % on the jewellery you want (any value, e.g. 18.86)</label>
+<input id="cwp" inputmode="decimal" placeholder="e.g. 22">
 <table id="chit" style="margin-top:10px"></table>
-<div class="total"><span>Chit value</span><b id="cval">₹0</b></div>
-<p class="note">Before you join, ask: (1) is the gold rate fixed on the day you buy or when you join? (2) is wastage or making charge waived? (3) can it be used on all jewellery, or only some? (4) is GST paid by you extra? (5) what happens if you miss a month?</p>
+<div class="total"><span>Best chit value</span><b id="cval">₹0</b></div>
+<p class="note">On the Buy tab, tick “I am redeeming my chit” and this value and wastage benefit are used in the bill. Ask the shop: is the gold rate fixed on the day you buy or when you join? Is GST extra? Can it be used on all jewellery? What if you miss a month?</p>
 </div>
 </section>
+
 </main>
 
 <script>
@@ -178,32 +198,62 @@ document.querySelectorAll('.tabs button').forEach(function(b){
 
 function row(l,val,cls){return '<tr class="'+(cls||'')+'"><td>'+l+'</td><td>'+val+'</td></tr>'}
 
-function buy(){
- var rate=v('rate'),gw=v('gw'),sw=v('sw'),net=Math.max(gw-sw,0);
- var t=$('mt').value,mv=v('mv'),md=v('md');
- $('mvl').textContent=t==='w'?'Wastage %':t==='g'?'Making charge (₹ per gram)':'Making charge (₹)';
- var gold=net*rate,making=0,wg=0;
- if(t==='w'){wg=net*mv/100;making=wg*rate}
- else if(t==='g'){making=net*mv}
- else{making=mv}
- var disc=making*md/100,stone=v('st'),oth=v('ot');
- var sub=gold+making-disc+stone+oth,gst=sub*v('gst')/100,tot=sub+gst;
+function chg(pct,type,x){return type==='up'?Math.max(pct-x,0):type==='disc'?pct*(1-x/100):pct}
+function chitInfo(){return {A:v('sm')*(v('sn')+v('sb')),W:v('sw2'),type:$('wt').value,x:v('wv')}}
+function core(mode,ci){
+ var rate=v('rate'),net=Math.max(v('gw')-v('sw'),0),t=$('mt').value,mv=v('mv'),md=v('md');
+ var cg=mode==='weight'?Math.min(ci.W,net):0;
+ var gold=net*rate,wg=net*mv/100,making=t==='w'?wg*rate:t==='g'?net*mv:mv,chd=0;
+ if(t==='w'&&cg>0)chd=cg*(mv-chg(mv,ci.type,ci.x))/100*rate;
+ var disc=(making-chd)*md/100,stone=v('st'),oth=v('ot');
+ var sub=gold+making-chd-disc+stone+oth,gst=sub*v('gst')/100,tot=sub+gst;
  var oldv=v('ow')*v('op')/100*(v('orate')||rate);
- var h=row('Net gold weight',G(net))+row('Gold value ('+G(net)+' × '+R(rate)+')',R(gold));
- h+=row(t==='w'?'Wastage ('+mv+'% = '+G(wg)+')':'Making charge',R(making));
- if(disc>0)h+=row('Discount on making ('+md+'%)','− '+R(disc),'neg');
- if(stone)h+=row('Stone charges',R(stone));
- if(oth)h+=row('Hallmark / other',R(oth));
- h+=row('Amount before GST',R(sub),'sum')+row('GST ('+v('gst')+'%)',R(gst))+row('Bill total',R(tot),'sum');
- if(oldv>0)h+=row('Old gold value','− '+R(oldv),'neg');
- $('bill').innerHTML=h;
- $('pay').textContent=R(Math.max(tot-oldv,0));
- var ex=[];
- if(net>0&&rate>0){
-  ex.push('Making cost is '+(((making-disc)/gold*100)||0).toFixed(1)+'% of the gold value.');
-  ex.push('You pay '+R(tot/net)+' per gram all-in, against the board rate of '+R(rate)+'.');
+ var credit=mode==='weight'?cg*rate:mode==='amount'?ci.A:0;
+ var due=Math.max(tot-oldv,0),used=Math.min(credit,due);
+ return {rate:rate,net:net,t:t,mv:mv,md:md,cg:cg,gold:gold,wg:wg,making:making,chd:chd,disc:disc,stone:stone,oth:oth,sub:sub,gst:gst,tot:tot,oldv:oldv,credit:credit,used:used,due:due,pay:due-used,left:credit-used};
+}
+function buy(){
+ var ci=chitInfo(),uc=$('uc').checked,rate=v('rate');
+ $('mvl').textContent=$('mt').value==='w'?'Wastage %':$('mt').value==='g'?'Making charge (₹ per gram)':'Making charge (₹)';
+ var a=null,w=null,mode='none';
+ if(uc){
+  if(ci.A>0)a=core('amount',ci);
+  if(ci.W>0)w=core('weight',ci);
+  mode=a&&w?(w.pay<=a.pay?'weight':'amount'):w?'weight':a?'amount':'none';
  }
+ var o=core(mode,ci);
+ var h=row('Net gold weight',G(o.net))+row('Gold value ('+G(o.net)+' × '+R(rate)+')',R(o.gold));
+ h+=row(o.t==='w'?'Wastage ('+o.mv+'% = '+G(o.wg)+')':'Making charge',R(o.making));
+ if(o.chd>0)h+=row('Chit wastage benefit (on '+G(o.cg)+')','− '+R(o.chd),'neg');
+ if(o.disc>0)h+=row('Discount on making ('+o.md+'%)','− '+R(o.disc),'neg');
+ if(o.stone)h+=row('Stone charges',R(o.stone));
+ if(o.oth)h+=row('Hallmark / other',R(o.oth));
+ h+=row('Amount before GST',R(o.sub),'sum')+row('GST ('+v('gst')+'%)',R(o.gst))+row('Bill total',R(o.tot),'sum');
+ if(o.oldv>0)h+=row('Old gold value','− '+R(o.oldv),'neg');
+ if(o.used>0)h+=row(mode==='weight'?'Chit used ('+G(o.cg)+' of gold)':'Chit used (amount)','− '+R(o.used),'neg');
+ $('bill').innerHTML=h;
+ $('pay').textContent=R(o.pay);
+ var ex=[];
+ if(o.net>0&&rate>0){
+  ex.push('Making cost is '+(((o.making-o.chd-o.disc)/o.gold*100)||0).toFixed(1)+'% of the gold value.');
+  ex.push('You pay '+R(o.tot/o.net)+' per gram all-in, against the board rate of '+R(rate)+'.');
+ }
+ if(o.left>0)ex.push(mode==='weight'?'Chit gold left: '+G(ci.W-o.cg)+'.':'Chit balance left: '+R(o.left)+'.');
+ if(mode==='weight'&&o.net>o.cg)ex.push('The extra '+G(o.net-o.cg)+' beyond your chit pays full wastage.');
  $('extra').textContent=ex.join(' ');
+ var inf='Enter your chit details in the Chit scheme tab, then tick the box above.';
+ if(uc){
+  if(!a&&!w)inf='No chit amount or weight entered yet. Fill the Chit scheme tab.';
+  else{
+   var p=[];
+   if(a)p.push('As amount ('+R(ci.A)+'): you pay '+R(a.pay)+'.');
+   if(w)p.push('As weight ('+G(ci.W)+'): you pay '+R(w.pay)+'.');
+   if(a&&w)p.push((w.pay<a.pay?'Weight':a.pay<w.pay?'Amount':'Both')+(a.pay!==w.pay?' is cheaper by '+R(Math.abs(a.pay-w.pay))+'.':' cost the same.')+' Bill shows the cheaper one.');
+   if(w&&o.t!=='w')p.push('(Wastage benefit only works when making is given as wastage %.)');
+   inf=p.join(' ');
+  }
+ }
+ $('chinfo').textContent=inf;
 }
 
 function shop(p){
@@ -220,16 +270,28 @@ function cmp(){
 }
 
 function chit(){
- var m=v('sm'),n=v('sn'),b=v('sb'),r=v('sr'),paid=m*n,val=m*(n+b),bon=m*b;
- var h=row('You pay in total',R(paid))+row('Shop adds',R(bon),'neg')+row('Bonus on what you paid',(n>0?(bon/paid*100).toFixed(1):'0')+'%');
- if(r>0)h+=row('Gold you could buy today (chit value)',G(val/r))+row('Gold if you bought directly with your money',G(paid/r));
- h+=row('Jewellery you can pick if GST comes from chit',R(val/1.03));
+ var m=v('sm'),n=v('sn'),b=v('sb'),r=v('sr')||v('rate'),W=v('sw2'),paid=m*n,bon=m*b,A=m*(n+b),B=W*r;
+ var p=v('cwp')||($('mt').value==='w'?v('mv'):0),t=$('wt').value,x=v('wv'),c=chg(p,t,x),sv=p>0?W*(p-c)/100*r:0,Bt=B+sv,best=Math.max(A,Bt);
+ var rd=function(z){return Math.round(z*100)/100};
+ var o=$('wt').options;
+ o[0].textContent=p>0?'Minus points: '+rd(p)+'% − '+rd(x)+' = '+rd(chg(p,'up',x))+'%':'Minus points (e.g. 18.86% − 18 = 0.86%)';
+ o[1].textContent=p>0?'% off the wastage: '+rd(p)+'% less '+rd(x)+'% = '+rd(chg(p,'disc',x))+'%':'% off the wastage (e.g. 18.86% less 18% = 15.47%)';
+ $('wvl').textContent=t==='up'?'Wastage reduced by (points, e.g. 18)':'Discount on wastage (%)';
+ var h='';
+ if(m>0&&n>0)h+=row('You pay in total',R(paid))+row('Shop adds',R(bon),'neg')+row('Bonus on what you paid',(bon/paid*100).toFixed(1)+'%');
+ if(A>0){h+=row('Option 1: take as amount',R(A));if(r>0)h+=row('Same amount in gold today',G(A/r))}
+ if(W>0&&r>0){
+  h+=row('Option 2: take as weight ('+G(W)+' × '+R(r)+')',R(B));
+  if(p>0)h+=row('Wastage saved on chit grams ('+rd(p)+'% → '+rd(c)+'%)',R(sv),'neg');
+  h+=row('Weight option is worth',R(Bt),'sum');
+ }
+ if(A>0&&Bt>0)h+=row('Better option','<b>'+(Bt>A?'Weight':A>Bt?'Amount':'Both equal')+'</b>'+(A!==Bt?' by '+R(Math.abs(A-Bt)):''),'sum');
  $('chit').innerHTML=h;
- $('cval').textContent=R(val);
+ $('cval').textContent=R(best);
 }
 
 document.addEventListener('input',function(){buy();cmp();chit()});
-document.addEventListener('change',function(){buy()});
+document.addEventListener('change',function(){buy();cmp();chit()});
 buy();cmp();chit();
 var hs=(location.hash||'').slice(1);
 if(hs){var tb=document.querySelector('.tabs button[data-t="'+hs+'"]');if(tb)tb.click()}

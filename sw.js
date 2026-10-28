@@ -1,4 +1,4 @@
-var CACHE='gold-calc-v1';
+var CACHE='gold-calc-v3';
 var FILES=['./','./index.html','./manifest.json','./icon-180.png','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',function(e){
   e.waitUntil(caches.open(CACHE).then(function(c){return c.addAll(FILES)}));
